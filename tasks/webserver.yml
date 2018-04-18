@@ -1,0 +1,63 @@
+---
+- name: Install required repo for Icinga PHP.
+  yum_repository:
+    name:        centos-sclo-rh
+    description: "CentOS-7 - SCLo rh"
+    baseurl:     https://artifactory.reform.hmcts.net/artifactory/list/ext-icinga-sclo-rh/
+    enabled:     yes
+    gpgcheck:    yes
+    gpgkey:      https://www.centos.org/keys/RPM-GPG-KEY-CentOS-SIG-SCLo
+
+- name: Install required repo for Icinga PHP.
+  yum_repository:
+    name:        centos-sclo-sclo
+    description: "CentOS-7 - SCLo sclo"
+    baseurl:     https://artifactory.reform.hmcts.net/artifactory/list/ext-icinga-sclo/
+    enabled:     yes
+    gpgcheck:    yes
+    gpgkey:      https://www.centos.org/keys/RPM-GPG-KEY-CentOS-SIG-SCLo
+
+- name: Install non-specific distro support packages.
+  yum:
+    state: present
+    name: "{{ item }}"
+  with_items:
+    - ImageMagick
+
+- name: Install webserver required packages.
+  yum:
+    state: present
+    name: "{{ item }}"
+  with_items:
+    - rh-php71-runtime-1-1.el7
+    - rh-php71-php-fpm
+    - rh-php71-php-common
+    - httpd
+    - mod_ssl
+  notify: restart apache
+
+- name: Install PHP required module packages.
+  yum:
+    state: present
+    name: "{{ item }}"
+  with_items:
+    - rh-php71-php-mysqlnd
+    - rh-php71-php-mbstring
+    - sclo-php71-php-pecl-imagick
+    - rh-php71-php-ldap
+    - rh-php71-php-mbstring
+    - rh-php71-php-gd
+    - rh-php71-php-json
+    - rh-php71-php-pdo
+    - rh-php71-php-zip
+    - rh-php71-php-cli
+    - rh-php71-php-xml
+    - rh-php71-php-pgsql
+  notify: "restart apache"
+
+- name: Set php timezone for pre-requisite.
+  replace:
+    path: /etc/opt/rh/rh-php71/php.ini
+    regexp: '^;date.timezone =$'
+    replace: 'date.timezone = Etc/UTC'
+  notify: restart php-fpm

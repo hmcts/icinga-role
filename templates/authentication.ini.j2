@@ -1,0 +1,8 @@
+[icingaweb2]
+user_class = "inetOrgPerson"
+filter = ""
+user_name_attribute = "uid"
+backend = "ldap"
+base_dn = "{{ jenkins_ldap_config.rootdn }}"
+domain = "{{ icinga2_default_auth_domain }}"
+resource = "icingaweb_ldap"

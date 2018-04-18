@@ -1,0 +1,19 @@
+[icingaweb_ldap]
+type = "ldap"
+hostname = "{{ icinga_ldap_config.server }}"
+port = "{{ icinga_ldap_config.port }}"
+encryption = "{{ icinga_ldap_config.scheme }}"
+root_dn = "{{ icinga_ldap_config.rootdn }}"
+bind_dn = "{{ icinga_ldap_config.managerdn }}"
+bind_pw = "{{ icinga_ldap_config.managerpasswordsecret }}"
+
+[icinga_ido]
+type = "db"
+db = "pgsql"
+host = "{{ icinga_postgres_host }}"
+port = "5432"
+dbname = "{{ icinga_postgres_database }}"
+username = "{{ icinga_postgres_user }}"
+password = "{{ icinga_postgres_password }}"
+charset = ""
+persistent = "0"

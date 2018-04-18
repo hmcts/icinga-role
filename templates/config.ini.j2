@@ -1,0 +1,16 @@
+[global]
+show_stacktraces = "1"
+config_backend = "db"
+module_path = "/usr/share/icingaweb2/modules"
+config_resource = "icinga_ido"
+
+[authentication]
+default_domain = "{{ icinga2_default_auth_domain }}"
+
+[logging]
+log = "syslog"
+level = "WARNING"
+application = "icingaweb2"
+facility = "user"
+
+[themes]

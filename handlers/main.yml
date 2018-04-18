@@ -1,0 +1,23 @@
+- name: "Reload apache httpd"
+  service:
+    name: httpd
+    state: reloaded
+  listen: "reload apache"
+
+- name: "Restart apache httpd"
+  service:
+    name: httpd
+    state: restarted
+  listen: "restart apache"
+
+- name: "Restart php-fpm"
+  service:
+    name: rh-php71-php-fpm
+    state: restarted
+  listen: "restart php-fpm"
+
+- name: "Restart icinga"
+  service:
+    name: icinga2
+    state: restarted
+  listen: "restart icinga"

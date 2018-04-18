@@ -1,0 +1,92 @@
+---
+- name: Ensure the wizard setup.token is gone.
+  file:
+    path: /etc/icingaweb2/setup.token
+    state: absent
+
+- name: Install templated postgres connectivity config.
+  template:
+    src: ido-pgsql.conf.j2
+    dest: /etc/icinga2/features-available/ido-pgsql.conf
+    mode: 0640
+    owner: icinga
+    group: icinga
+  notify: restart icinga
+
+- name: Install apache config for icingaweb2
+  template:
+    src: icingaweb2.conf.j2
+    dest: /etc/httpd/conf.d/icingaweb2.conf
+    mode: 0644
+    owner: root
+    group: root
+  notify: reload apache
+
+- name: Verify apache config.
+  command: httpd -t
+  changed_when: false
+
+- name: Install templated base config to avoid the icingaweb2 setup wizard
+  template:
+    src: "{{ item }}.j2"
+    dest: "/etc/icingaweb2/{{ item }}"
+    mode: 0660
+    owner: apache
+    group: icingaweb2
+  with_items:
+    - resources.ini
+    - config.ini
+    - authentication.ini
+    - roles.ini
+    - groups.ini
+
+- name: Ensure monitoring config directories exist so we can poke files in.
+  file:
+    dest: "/etc/icingaweb2/modules/monitoring"
+    state: directory
+    owner: apache
+    group: icingaweb2
+    mode: "u=rwx,g=rwx,o-rwx,g+s"
+
+- name: Install templated monitoring config to avoid the icingaweb2 setup wizard
+  template:
+    src: "monitoring/{{ item }}.j2"
+    dest: "/etc/icingaweb2/modules/monitoring/{{ item }}"
+    mode: 0660
+    owner: apache
+    group: icingaweb2
+  with_items:
+    - config.ini
+    - backends.ini
+    - commandtransports.ini
+
+- name: Ensure enabledModules directory exists.
+  file:
+    dest: "/etc/icingaweb2/enabledModules"
+    state: directory
+    owner: apache
+    group: icingaweb2
+    mode: "u=rwx,g=rx,o-rwx,g+s"
+
+- name: Enable modules now we set them up.
+  file:
+    src: "/usr/share/icingaweb2/modules/{{ item }}"
+    dest: "/etc/icingaweb2/enabledModules/{{ item }}"
+    owner: apache
+    group: icingaweb2
+    state: link
+  with_items:
+    - doc
+    - monitoring
+  notify: restart icinga
+
+- name: Enable required icinga features.
+  file:
+    src: "/etc/icinga2/features-available/{{ item }}.conf"
+    dest: "/etc/icinga2/features-enabled/{{ item }}.conf"
+    owner: apache
+    group: icingaweb2
+    state: link
+  with_items:
+    - api
+  notify: restart icinga

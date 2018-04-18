@@ -1,0 +1,41 @@
+icinga_host_name: icinga.example.com
+icinga_uri: icingaweb2
+
+icinga2_api_user: "root"
+icinga2_api_password: examplePassWord
+
+icinga_postgres_user: examplePgUser
+icinga_postgres_password: examplePgPassWord
+icinga_postgres_host: localhost
+icinga_postgres_database: icinga
+
+icinga_proxy_ssl_key_location: "/etc/pki/tls/private/example.com.key"
+icinga_proxy_ssl_crt_location: "/etc/pki/tls/certs/example.com.crt"
+icinga_proxy_ssl_ca_location: "/etc/pki/tls/certs/example.com_CA.crt"
+icinga_proxy_ssl_key: ""
+icinga_proxy_ssl_crt: ""
+icinga_proxy_ssl_ca: ""
+
+icinga_api_ssl_key_location: "/var/lib/icinga2/certs/{{ ansible_nodename }}.example.com.key"
+icinga_api_ssl_crt_location: "/var/lib/icinga2/certs/{{ ansible_nodename }}.example.com.crt"
+icinga_api_ssl_ca_location: "/var/lib/icinga2/certs/ca.crt"
+icinga_api_ssl_key: ""
+icinga_api_ssl_crt: ""
+icinga_api_ssl_ca: ""
+icinga_api_ssl_pass: "exampleApiPassword"
+icinga2_api_domain_suffix: ".example.com"
+
+icinga_ldap_config:
+  scheme: ldaps
+  server: "ldap.example.com"
+  port: 636
+  rootdn: "dc=example,dc=com"
+  usersearch: "uid={1000}"
+  managerdn: "cn=ldapadmin,dc=example,dc=com"
+  managerpasswordsecret: exampleManagerPassword
+
+icinga_role_vault_url: "https://vault.example.com:6200/"
+icinga_vault_token: "exmaple-vault-token-uuid"
+
+icinga2_admin_users:
+   - root@example.com

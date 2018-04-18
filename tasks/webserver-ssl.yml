@@ -1,0 +1,18 @@
+---
+- name: copy SSL cert for apache frontend proxy
+  become: yes
+  copy:
+    dest: "{{ icinga_proxy_ssl_crt_location }}"
+    content: "{{ icinga_proxy_ssl_crt }}"
+
+- name: copy SSL key for apache frontend proxy
+  become: yes
+  copy:
+    dest: "{{ icinga_proxy_ssl_key_location }}"
+    content: "{{ icinga_proxy_ssl_key }}"
+
+- name: copy SSL CA for apache frontend proxy
+  become: yes
+  copy:
+    dest: "{{ icinga_proxy_ssl_ca_location }}"
+    content: "{{ icinga_proxy_ssl_ca }}"

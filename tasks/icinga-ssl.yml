@@ -1,0 +1,20 @@
+---
+## * Deploy signed cert & key under /var/lib/icinga2/certs/
+
+- name: copy SSL cert for icinga api
+  become: yes
+  copy:
+    dest: "/var/lib/icinga2/certs/{{ ansible_nodename }}{{ icinga2_api_domain_suffix }}.crt"
+    content: "{{ icinga_api_ssl_crt }}"
+
+- name: copy SSL key for icinga api
+  become: yes
+  copy:
+    dest: "/var/lib/icinga2/certs/{{ ansible_nodename }}{{ icinga2_api_domain_suffix }}.key"
+    content: "{{ icinga_api_ssl_key }}"
+
+- name: copy SSL CA for icinga api proxy
+  become: yes
+  copy:
+    dest: "/var/lib/icinga2/certs/ca.crt"
+    content: "{{ icinga_api_ssl_ca }}"

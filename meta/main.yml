@@ -1,0 +1,5 @@
+---
+
+dependencies:
+  - role: devops.repos
+  - role: devops.postgresql

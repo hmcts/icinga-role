@@ -1,0 +1,69 @@
+NameVirtualHost *:80
+NameVirtualHost *:443
+<VirtualHost *:80>
+Redirect permanent / https://{{ icinga_host_name }}/{{ icinga_uri }}/
+</VirtualHost>
+<VirtualHost *:443>
+SSLEngine on
+
+SSLCertificateFile {{ icinga_proxy_ssl_crt_location }}
+SSLCertificateKeyFile {{ icinga_proxy_ssl_key_location }}
+SSLCertificateChainFile {{ icinga_proxy_ssl_ca_location }}
+# HSTS (mod_headers is required) (15768000 seconds = 6 months)
+Header always set Strict-Transport-Security "max-age=15768000"
+</VirtualHost>
+SSLProtocol             all -SSLv3 -TLSv1 -TLSv1.1
+SSLCipherSuite          ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA:ECDHE-ECDSA-DES-CBC3-SHA:ECDHE-RSA-DES-CBC3-SHA:EDH-RSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:DES-CBC3-SHA:!DSS
+SSLHonorCipherOrder     on
+SSLCompression          off
+SSLUseStapling          on
+SSLStaplingResponderTimeout 5
+SSLStaplingReturnResponderErrors off
+SSLStaplingCache        shmcb:/var/run/ocsp(128000)
+
+Alias /{{ icinga_uri }} "/usr/share/icingaweb2/public"
+
+<Directory "/usr/share/icingaweb2/public">
+    Options SymLinksIfOwnerMatch
+    AllowOverride None
+
+    DirectoryIndex index.php
+
+    <IfModule mod_authz_core.c>
+        # Apache 2.4
+        <RequireAll>
+            Require all granted
+        </RequireAll>
+    </IfModule>
+
+    <IfModule !mod_authz_core.c>
+        # Apache 2.2
+        Order allow,deny
+        Allow from all
+    </IfModule>
+
+    SetEnv ICINGAWEB_CONFIGDIR "/etc/icingaweb2"
+
+    EnableSendfile Off
+
+    <IfModule mod_rewrite.c>
+        RewriteEngine on
+        RewriteBase /{{ icinga_uri }}/
+        RewriteCond %{REQUEST_FILENAME} -s [OR]
+        RewriteCond %{REQUEST_FILENAME} -l [OR]
+        RewriteCond %{REQUEST_FILENAME} -d
+        RewriteRule ^.*$ - [NC,L]
+        RewriteRule ^.*$ index.php [NC,L]
+    </IfModule>
+
+    <IfModule !mod_rewrite.c>
+        DirectoryIndex error_norewrite.html
+        ErrorDocument 404 /{{ icinga_uri }}/error_norewrite.html
+    </IfModule>
+
+    # Forward PHP requests to FPM
+    <FilesMatch "\.php$">
+        SetHandler "proxy:fcgi://127.0.0.1:9000"
+        ErrorDocument 503 /{{ icinga_uri }}/error_unavailable.html
+    </FilesMatch>
+</Directory>

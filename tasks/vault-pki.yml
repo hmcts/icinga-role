@@ -1,0 +1,45 @@
+---
+- name: Show the common name (CN) that would go into our node certificate.
+  debug: msg="{{ ansible_nodename }}{{ icinga2_api_domain_suffix }}"
+
+# Rules to load a key/crt pair from vault, signed with our own CA, to avoid
+# using the globally known Icinga CA that is part of the package.
+#
+# NB. Because molecule forces us to manually set variables rather than reference
+# vault, as things stand the functionality of file will never be tested by
+# molecule.
+# NB. This may be better off as a role at a later date.
+
+# We use the URI module because coercing hashi_vault lookup plugin into a task,
+# to register a result, retrieve the _raw element (or cached elements of each
+# piece we need), and hook out each piece is prohibitively complex compared
+# to this approach.
+- name: Generate certificate for this node from our own vault intermediate CA.
+  uri:
+    url: "{{ icinga_role_vault_url }}/v1/pki_int/issue/reform-hmcts-net"
+    method: POST
+    headers:
+      X-Vault-Token: "{{ icinga_vault_token }}"
+    body:
+      common_name: "{{ ansible_nodename }}{{ icinga2_api_domain_suffix }}"
+      format: "pem"
+      ttl: 43800h
+    body_format: json
+    return_content: yes
+  register: node_cert_data
+
+- name: Debug output of certificate serial number.
+  debug: msg="{{ node_cert_data.json.data.serial_number }}"
+
+# The sole goal of this file is to populate the following vars with correct
+# SSL metadata:
+- name: Set facts for SSL cert/key/CA stuff.
+  set_fact:
+# {{ node_cert_data.json.data.ca_chain }}
+# {{ node_cert_data.json.data.private_key_type }}
+# icinga_api_ssl_crt: cert signed with intermediate CA in vault under pki_int.
+    icinga_api_ssl_crt: "{{ node_cert_data.json.data.certificate }}"
+# icinga_api_ssl_key: private key
+    icinga_api_ssl_key: "{{ node_cert_data.json.data.private_key }}"
+# icinga_api_ssl_ca: 10-year CA cert from vault.
+    icinga_api_ssl_ca: "{{ node_cert_data.json.data.issuing_ca }}"

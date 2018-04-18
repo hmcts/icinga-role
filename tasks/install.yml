@@ -1,0 +1,41 @@
+---
+- name: Add icinga yum repository
+  yum_repository:
+    name:        icinga
+    description: "ICINGA (stable release for epel)"
+    baseurl:     https://artifactory.reform.hmcts.net/artifactory/list/ext-icinga/
+    enabled:     yes
+    gpgcheck:    yes
+    gpgkey:      https://packages.icinga.com/icinga.key
+
+- name: Install icinga2 base packages.
+  yum:
+    state: present
+    name: "{{ item }}"
+  with_items:
+    - icinga2
+    - icinga2-bin
+    - icinga2-common
+    - icinga2-ido-pgsql
+    - icingacli
+    - php-Icinga
+    - icinga2-selinux
+    - icinga2-libs
+    - icingaweb2
+    - icingaweb2-common
+    - icingaweb2-selinux
+    - icingaweb2-vendor-JShrink
+    - icingaweb2-vendor-lessphp
+    - icingaweb2-vendor-dompdf
+    - icingaweb2-vendor-zf1
+    - icingaweb2-vendor-HTMLPurifier
+    - icingaweb2-vendor-Parsedown
+
+- name: Install all icinga2 plugin packages and support.
+  yum:
+    state: present
+    name: "{{ item }}"
+  with_items:
+    - nagios-common
+    - nagios-plugins
+    - nagios-plugins-all

@@ -1,0 +1,31 @@
+---
+- name: Import tasks for proxy webserver configuration
+  import_tasks: webserver.yml
+
+- name: Import tasks for setting up SSL certs for the proxy webserver
+  import_tasks: webserver-ssl.yml
+
+- name: Import tasks to do a basic install of icinga2.
+  import_tasks: install.yml
+
+- name: Import tasks to build or update the postgres schema for icinga2
+  import_tasks: schema.yml
+
+- name: Import tasks to load certs from Vault PKI infrastructure if not set already.
+  import_tasks: vault-pki.yml
+  when:
+    - icinga_api_ssl_crt.find('BEGIN CERTIFICATE') == -1
+    - icinga_api_ssl_key.find('KEY') == -1
+    - icinga_api_ssl_ca.find('BEGIN CERTIFICATE') == -1
+
+- name: Import tasks to set up SSL for the Icinga2 API.
+  import_tasks: icinga-ssl.yml
+
+- name: Import tasks to set up icinga2 config files and enable modules.
+  import_tasks: configure.yml
+
+- name: Import tasks to ensure selinux is set up correctly for Icinga2
+  import_tasks: selinux.yml
+
+- name: Import tasks to make sure Icinga2 and required services are up.
+  import_tasks: services.yml

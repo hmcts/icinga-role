@@ -1,0 +1,113 @@
+---
+- hosts: all
+  tasks:
+    - name: Install
+      yum:
+        name: openssl
+        state: present
+    - name: Add test proxy certificate
+      command: "openssl req -x509 -newkey rsa:4096 -sha256 -nodes -keyout /tmp/proxy_molecule.key -out  /tmp/proxy_molecule.crt -subj /CN=icinga.local -days 3650"
+      args:
+        creates: "/tmp/proxy_molecule.*"
+    - name: slurp proxy certificate
+      slurp:
+        src: /tmp/proxy_molecule.crt
+      register: proxy_crtslurp
+    - name: slurp proxy key
+      slurp:
+        src: /tmp/proxy_molecule.key
+      register: proxy_keyslurp
+    - name: Store CA password locally.
+      copy:
+        dest: "/tmp/ca_pass.txt"
+        content: "{{ icinga_api_ssl_pass }}"
+    - name: Add test api CA key
+      command: "openssl genrsa -out /tmp/ca.key 2048 -days 3650"
+      args:
+        creates: /tmp/ca.key
+    - name: slurp api CA key
+      slurp:
+        src: /tmp/ca.key
+      register: api_cakeyslurp
+
+    - name: check we don't already have an api CA cert present. (idempotency)
+      stat:
+        path: "/tmp/ca.crt"
+      register: check_ca_crt
+
+    - name: Add test api CA cert.
+      command: "openssl req -new -key /tmp/ca.key -x509 -days 3650 -out /tmp/ca.crt -passin file:/tmp/ca_pass.txt -subj '/CN=icinga.local'"
+      args:
+        creates: "/tmp/ca.crt"
+      when: check_ca_crt.stat.exists == false
+
+    - name: slurp api ca cert.
+      slurp:
+        src: /tmp/ca.crt
+      register: api_cacrtslurp
+
+    - name: check we don't already have an api key present. (idempotency)
+      stat:
+        path: "/tmp/api_molecule.key"
+      register: api_molecule_key
+
+    - name: Create a key for api for use with CSR against our CA.
+      command: "openssl genrsa -out /tmp/api_molecule.key 2048"
+      args:
+        creates: "/tmp/api_molecule.key"
+      when: api_molecule_key.stat.exists == false
+
+    - name: check we don't already have an api csr present. (idempotency)
+      stat:
+        path: "/tmp/api_molecule.csr"
+      register: api_molecule_csr
+
+    - name: Create a CSR of api certificate against our CA.
+      command: "openssl req -out /tmp/api_molecule.csr -new -key /tmp/api_molecule.key -nodes -subj '/CN={{ ansible_nodename }}{{ icinga2_api_domain_suffix }}'"
+      args:
+        creates:
+          - "/tmp/api_molecule.csr"
+      when: api_molecule_csr.stat.exists == false
+
+    - name: Sign test api certificate with our own CA.
+      command: 'openssl x509 -req -days 1825 -in /tmp/api_molecule.csr -CA /tmp/ca.crt -CAkey /tmp/ca.key -CAcreateserial -out /tmp/api_molecule.crt'
+      args:
+        creates: "/tmp/api_molecule.crt"
+    - name: slurp api certificate
+      slurp:
+        src: /tmp/api_molecule.crt
+      register: api_crtslurp
+    - name: slurp api key
+      slurp:
+        src: /tmp/api_molecule.key
+      register: api_keyslurp
+
+- hosts: all
+  gather_facts: true
+  vars:
+    icinga_proxy_ssl_crt: "{{ proxy_crtslurp['content'] | b64decode }}"
+    icinga_proxy_ssl_ca: "{{ proxy_crtslurp['content'] | b64decode }}"
+    icinga_proxy_ssl_key: "{{ proxy_keyslurp['content'] | b64decode }}"
+    icinga_api_ssl_crt: "{{ api_crtslurp['content'] | b64decode }}"
+    icinga_api_ssl_ca: "{{ api_cacrtslurp['content'] | b64decode }}"
+    icinga_api_ssl_key: "{{ api_keyslurp['content'] | b64decode }}"
+    postgresql_ssl_crt: "{{ proxy_crtslurp['content'] | b64decode }}"
+    postgresql_ssl_key: "{{ proxy_keyslurp['content'] | b64decode }}"
+    postgresql_user:
+      - name: "{{ icinga_postgres_user }}"
+        password: "{{ icinga_postgres_password }}"
+    postgresql_database:
+      - name: "{{ icinga_postgres_database }}"
+    postgresql_custom_sql:
+      - db: "{{ icinga_postgres_database }}"
+        sql: "GRANT CREATE,USAGE ON SCHEMA public TO {{ icinga_postgres_user }}"
+    icinga_ldap_config:
+      scheme: ldaps
+      server: "localhost"
+      port: 636
+      rootdn: "dc=example,dc=com"
+      usersearch: "uid={1000}"
+      managerdn: "cn=changeme,dc=example,dc=com"
+      managerpasswordsecret:  "testpasswordsecret-changeme"
+  roles:
+    - role: icinga-role

@@ -1,0 +1,49 @@
+---
+# Handle adding or updating the schema for icinga2.
+- name: Attempt to verify existence of the icinga database.
+  command: psql -d {{ icinga_postgres_database|quote }} -c 'SELECT version FROM icinga_dbversion LIMIT 1'
+  become: true
+  become_user: postgres
+  changed_when: false
+  register: db_test_result
+  ignore_errors: true
+  failed_when: db_test_result.rc != 0
+
+- name: Debug output of the icinga database check return data.
+  debug:
+    var: db_test_result
+    verbosity: 2
+
+- name: Run the basic empty database schema for icinga.
+  shell: cat /usr/share/icinga2-ido-pgsql/schema/pgsql.sql | psql -d {{ icinga_postgres_database|quote }}
+  become: true
+  become_user: postgres
+  when: db_test_result.rc != 0
+  register: db_schema_result
+
+# This would need to be run in the correct order, and is not currently relevant.
+#- name: Run the schema updates for icinga.
+#  shell: cat /usr/share/icinga2-ido-pgsql/schema/upgrade/*.sql | psql -d {{ icinga_postgres_database|quote }}
+#  become: true
+#  become_user: postgres
+#  when: db_test_result.rc == 0
+#  register: db_schema_result
+#
+#- name: Debug output of the icinga database schema change.
+#  debug:
+#    var: db_schema_result
+#    verbosity: 2
+
+- name: Grant access to the icinga DB user to the newly created tables.
+  command: psql -d {{ icinga_postgres_database|quote }} -c "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO {{ icinga_postgres_user }};"
+  become: true
+  become_user: postgres
+  ignore_errors: yes
+  changed_when: false
+
+- name: Grant access to the icinga DB user to the newly created sequences.
+  command: psql -d {{ icinga_postgres_database|quote }} -c "GRANT SELECT, USAGE ON ALL SEQUENCES IN SCHEMA public TO {{ icinga_postgres_user }};"
+  become: true
+  become_user: postgres
+  ignore_errors: yes
+  changed_when: false

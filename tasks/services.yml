@@ -1,0 +1,18 @@
+---
+- name: Start PHP7.1 FPM service.
+  service:
+    name: rh-php71-php-fpm
+    state: started
+    enabled: yes
+
+- name: Start apache web server service.
+  service:
+    name: httpd
+    state: started
+    enabled: yes
+
+- name: Start icinga2 service.
+  service:
+    name: icinga2
+    state: started
+    enabled: yes
